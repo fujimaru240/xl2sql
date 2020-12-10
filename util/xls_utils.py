@@ -1,13 +1,13 @@
 import openpyxl
 
 class XlsUtils:
-  _instance = None
+  # _instance = None
   _sheet = None
 
-  def __new__(cls):
-    if cls._instance is None:
-      cls._instance = object.__new__(cls)
-    return cls._instance
+  # def __new__(cls):
+  #   if cls._instance is None:
+  #     cls._instance = object.__new__(cls)
+  #   return cls._instance
 
   def open_sheet(self, file_name, sheet_name):
     workbook = openpyxl.load_workbook(file_name, data_only=True)
