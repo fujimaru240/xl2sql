@@ -35,6 +35,7 @@ class XlAnalyzer:
           return key
 
   def check_float(self, key, data_type):
+    """floatかチェックする"""
     if key != DataType.TYPE_NUM:
       return False
     float_patterns = DataType.TYPES_EXT[DataType.TYPE_FLOAT]
@@ -205,6 +206,9 @@ class XlAnalyzer:
     if ext:
       return '{0}.{1}'.format(file_name, ext)
     return file_name
+
+  def get_table_name(self):
+    return self._xls_utils.get_cell(pos=CellPos.TABLE_NAME)
 
   def read_bulk_setting(self, file_name):
     """複製データ群設定を読み込む"""
