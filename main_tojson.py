@@ -1,4 +1,5 @@
 import sys
+import json
 
 from service.xl_anlyzer import XlAnalyzer
 from util.com_utils import ComUtils
@@ -12,13 +13,15 @@ sheet_name = args[2]
 
 analyzer = XlAnalyzer(file_name, sheet_name)
 
-output_file_name = analyzer.get_output_file_name("sql")
-# f = open(output_file_name, mode='w')
+output_file_name = analyzer.get_output_file_name("json")
+f = open(output_file_name, mode='w', encoding='utf-8')
 
+records = []
 for row in analyzer.get_record_range():
     dict_record = analyzer.create_dict(row)
     print(dict_record)
-    # f.write("{0}\n".format(query))
+    records.append(dict_record)
+f.write(json.dumps(records, indent=2, ensure_ascii=False))
 
-# f.close
+f.close
 
