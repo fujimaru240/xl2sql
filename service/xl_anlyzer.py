@@ -17,18 +17,34 @@ class XlAnalyzer:
     self._xls_utils = XlsUtils()
     self._xls_utils.open_sheet(file_name, sheet_name)
 
-  def get_data_type(self, col):
+  def get_data_type(self, col, use_float=False):
     """データタイプを取得する"""
     data_type = self._xls_utils.get_cell(row=CellPos.DATA_TYPE_FIRST[0], col=col)
     data_type = r'{0}'.format(data_type)
     for key, patterns in DataType.TYPES.items():
       if not isinstance(patterns, tuple):
         if REUtils.is_match(data_type, patterns):
+          if use_float and self.check_float(key, data_type):
+            return DataType.TYPE_FLOAT
           return key
         continue
       for pattern in patterns:
         if REUtils.is_match(data_type, pattern):
+          if use_float and self.check_float(key, data_type):
+            return DataType.TYPE_FLOAT
           return key
+
+  def check_float(self, key, data_type):
+    if key != DataType.TYPE_NUM:
+      return False
+    float_patterns = DataType.TYPES_EXT[DataType.TYPE_FLOAT]
+    if not isinstance(float_patterns, tuple):
+      if REUtils.is_match(data_type, float_patterns):
+        return True
+    for pattern in float_patterns:
+      if REUtils.is_match(data_type, pattern):
+        return True
+    return False
 
   def get_colmn_name(self, col):
     """列名を取得する"""
@@ -53,8 +69,8 @@ class XlAnalyzer:
     """範囲を取得する"""
     return range(int(st_pos), int(st_pos) + add_pos)
 
-  def convert_data(self, data, data_type, col_name=None):
-    """データを変換する"""
+  def convert_data_for_sql(self, data, data_type, col_name=None):
+    """データを変換する(SQL用)"""
     seq = self._xls_utils.get_cell(pos=CellPos.SEQUENCE)
     seq_target = self._xls_utils.get_cell(pos=CellPos.SEQUENCE_TARGET_COL)
 
@@ -67,10 +83,22 @@ class XlAnalyzer:
       return XlAnalyzer.get_nvl(data, data_type)
 
     # 型データの変換
+    return self.convert_type_data_for_sql(data, data_type)
+
+  def convert_data(self, data, data_type, col_name=None):
+    """データを変換する"""
+    seq = self._xls_utils.get_cell(pos=CellPos.SEQUENCE)
+    seq_target = self._xls_utils.get_cell(pos=CellPos.SEQUENCE_TARGET_COL)
+
+    # nullの場合
+    if "null" == str(data).lower() or data is None:
+      return None
+
+    # 型データの変換
     return self.convert_type_data(data, data_type)
 
-  def convert_type_data(self, data, data_type):
-    """型データを変換する"""
+  def convert_type_data_for_sql(self, data, data_type):
+    """型データを変換する(SQL用)"""
     if DataType.TYPE_STR == data_type:
       # 文字列 (シングルクォートで囲む)
       return "\'{0}\'".format(data)
@@ -80,6 +108,15 @@ class XlAnalyzer:
     elif DataType.TYPE_NUM == data_type:
       # 数値 (そのまま返す)
       return str(data)
+    else:
+      return str(data)
+
+  def convert_type_data(self, data, data_type):
+    """型データを変換する"""
+    if DataType.TYPE_FLOAT == data_type:
+      return float(data)
+    elif DataType.TYPE_NUM == data_type:
+      return int(data)
     else:
       return str(data)
 
@@ -133,7 +170,7 @@ class XlAnalyzer:
       else:
         data = self._xls_utils.get_cell(row=target_row, col=col)
       # データを変換
-      record += self.convert_data(data, data_type, col_name) + ","
+      record += self.convert_data_for_sql(data, data_type, col_name) + ","
       columns += col_name + ","
 
     columns = columns[:-1]
@@ -141,6 +178,26 @@ class XlAnalyzer:
 
     table_name = self._xls_utils.get_cell(pos=CellPos.TABLE_NAME)
     return QueryTempl.SQL_INSERT.format(table_name, columns, record)
+
+  def create_dict(self, target_row, target_col=None, fix_value=None):
+    """dictを生成する"""
+    record = {}
+    for col in self.get_field_range():
+      # データ型を取得
+      data_type = self.get_data_type(col, use_float=True)
+      # 列名を取得
+      col_name = self.get_colmn_name(col)
+      # データを取得
+      if fix_value and target_col == col_name:
+        data = fix_value
+      else:
+        data = self._xls_utils.get_cell(row=target_row, col=col)
+      # データを変換
+      coverted_data = self.convert_data(data, data_type, col_name)
+      if coverted_data:
+        record[col_name] = coverted_data
+
+    return record
 
   def get_output_file_name(self, ext=None):
     """出力ファイル用のファイル名を取得する"""
