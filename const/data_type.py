@@ -11,5 +11,5 @@ class DataType:
   }
 
   TYPES_EXT = {
-    TYPE_FLOAT: ('.+\s*,\s*[1-9]{1}[0-9]*')
+    TYPE_FLOAT: '.+\s*,\s*[1-9]{1}[0-9]*'
   }

@@ -22,12 +22,6 @@ class XlAnalyzer:
     data_type = self._xls_utils.get_cell(row=CellPos.DATA_TYPE_FIRST[0], col=col)
     data_type = r'{0}'.format(data_type)
     for key, patterns in DataType.TYPES.items():
-      if not isinstance(patterns, tuple):
-        if REUtils.is_match(data_type, patterns):
-          if use_float and self.check_float(key, data_type):
-            return DataType.TYPE_FLOAT
-          return key
-        continue
       for pattern in patterns:
         if REUtils.is_match(data_type, pattern):
           if use_float and self.check_float(key, data_type):
@@ -38,13 +32,9 @@ class XlAnalyzer:
     """floatかチェックする"""
     if key != DataType.TYPE_NUM:
       return False
-    float_patterns = DataType.TYPES_EXT[DataType.TYPE_FLOAT]
-    if not isinstance(float_patterns, tuple):
-      if REUtils.is_match(data_type, float_patterns):
-        return True
-    for pattern in float_patterns:
-      if REUtils.is_match(data_type, pattern):
-        return True
+    float_pattern = DataType.TYPES_EXT[DataType.TYPE_FLOAT]
+    if REUtils.is_match(data_type, float_pattern):
+      return True
     return False
 
   def get_colmn_name(self, col):
